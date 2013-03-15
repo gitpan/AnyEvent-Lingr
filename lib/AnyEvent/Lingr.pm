@@ -1,7 +1,7 @@
 package AnyEvent::Lingr;
 use Mouse;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use AnyEvent::HTTP;
 
@@ -233,7 +233,7 @@ sub _polling {
     $uri->port(8080);
     $uri->query_form({ session => $self->session, counter => $self->counter });
 
-    my $guard = http_get $uri, timeout => 60*5, sub {
+    my $guard = http_get $uri, timeout => 60, sub {
         my ($body, $hdr) = @_;
         return unless $self;
 
@@ -256,7 +256,7 @@ sub _polling {
             $self->_polling;
         }
         else {
-            $self->_on_error($res);
+            $self->_on_error($res, $hdr);
         }
     };
     Scalar::Util::weaken($self);
@@ -446,7 +446,7 @@ Error callbacks.
 
 C<$msg> is error message. If this message is form of "\d\d\d: message" like:
 
-    595: Invalid argument
+    596: Operation timed out
 
 This is http level or connection level error. Otherwise C<$msg> is error message returned from lingr api server.
 

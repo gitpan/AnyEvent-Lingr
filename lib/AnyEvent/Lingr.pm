@@ -1,7 +1,7 @@
 package AnyEvent::Lingr;
 use Mouse;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use AnyEvent::HTTP;
 
@@ -117,7 +117,7 @@ sub start_session {
                 $self->_get_channels;
             }
             else {
-                warnf "session verify failed: %s", ddf($res);
+                debugf "session verify failed: %s", ddf($res || $hdr);
                 $self->session(undef);
                 $self->_on_error($res, $hdr);
             }
@@ -140,7 +140,7 @@ sub start_session {
                 $self->_get_channels;
             }
             else {
-                warnf "session create failed: %s", ddf($res);
+                debugf "session create failed: %s", ddf($res || $hdr);
                 $self->_on_error($res, $hdr);
             }
         });
@@ -256,7 +256,7 @@ sub _polling {
             $self->_polling;
         }
         else {
-            $self->_on_error($res, $hdr);
+            $self->_on_error($res);
         }
     };
     Scalar::Util::weaken($self);
@@ -265,14 +265,14 @@ sub _polling {
 }
 
 sub say {
-    my ($self, $room, $msg) = @_;
+    my ($self, $room, $msg, $cb) = @_;
 
     $self->post('room/say', { session => $self->session, room => $room, text => $msg }, sub {
         my ($res, $hdr) = @_;
         return unless $self;
 
         if ($res and $res->{status} eq 'ok') {
-            # ok
+            $cb->($res);
         }
         else {
             $self->_on_error($res, $hdr);
@@ -409,11 +409,19 @@ For updating subscription list, you can use C<update_room_info> method:
 Update joined room info, and fire on_room_info callback.
 This method also update subscription rooms which is target room for on_event callback.
 
-=head2 say($room, $message)
+=head2 say($room, $message [, $cb ])
 
 Say something to lingr room.
 
     $lingr->say('perl_jp', 'hi!');
+
+If you want response data, you can speficy callback.
+The callback is invoked when the API call was successful.
+
+    $lingr->say('perl_jp', 'hi there!', sub {
+        my $res = shift;
+        warn $res->{message}->{id};
+    });
 
 =head1 CALLBACKS
 
@@ -446,7 +454,7 @@ Error callbacks.
 
 C<$msg> is error message. If this message is form of "\d\d\d: message" like:
 
-    596: Operation timed out
+    595: Invalid argument
 
 This is http level or connection level error. Otherwise C<$msg> is error message returned from lingr api server.
 

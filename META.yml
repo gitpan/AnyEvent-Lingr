@@ -27,7 +27,8 @@ requires:
   Log::Minimal: 0
   Mouse: 1.05
   Try::Tiny: 0
+  URI: 0
   perl: 5.008001
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.05
+version: 0.06
